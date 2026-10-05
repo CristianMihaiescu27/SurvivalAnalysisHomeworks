@@ -3,3 +3,5 @@ reports/
 # R studio files
 .RData
 .Rhistory
+.Rproj.user
+.Ruserdata
