@@ -1,0 +1,121 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=1.4cm,top=1.1cm,bottom=1.2cm]{geometry}
+\usepackage{mathptmx}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{caption}
+\setlist{nosep,leftmargin=1.3em}
+\titleformat{\section}{\normalsize\bfseries}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{4pt}{1pt}
+\captionsetup{font=small,labelfont=bf,skip=3pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+{\large\bfseries Assignment 2 - Part 1}\\[3pt]
+{\small 2AMS11 Survival Analysis for Data Science --- Group Assignment, Part I --- September 2026}\\[1pt]
+{\small\textbf{Group 49:} Avram Andrei, Mihaiescu Cristian, Szelestey Adam, Vrincianu Darius, Zeng Qin Tao}
+\end{center}
+\vspace{-8pt}
+
+\section{Practical context}
+Acute liver failure (ALF) is a sudden loss of liver function. Therapeutic plasma exchange (TPE) replaces the patient's plasma to remove toxins, prevent brain swelling and support the other organs. It buys time for the liver to regenerate by itself.
+\textbf{Event:} failure, i.e.\ death or liver transplant, whichever comes first. Surviving without a transplant (``transplant-free survival'') is a success.
+\textbf{Time origin:} the first TPE cycle; time is measured in days.
+\textbf{Population:} adults with ALF who are treated with TPE.
+\textbf{Why survival analysis:} the outcome is a time to an event, and many patients are still alive without a transplant when follow-up ends, so their times are right-censored.
+
+\section{Survival model}
+We use a \textbf{log-logistic} model ($\log T$ follows a logistic distribution). When its shape parameter $\gamma>1$, the hazard first rises and then falls. This matches ALF: the risk is highest in the first days, while the liver is failing (a ``dangerous peak''). Patients who survive this period usually recover, so their risk drops.
+
+\section{Covariates}
+\begin{itemize}
+\item $D$, \textbf{days from diagnosis to first TPE}: later treatment lets toxins build up and damages more organs $\Rightarrow$ shorter survival.
+\item $E$, \textbf{etiology}: $1$ = cause that also damages other organs (e.g.\ accident, heart failure), $0$ = liver-only cause (e.g.\ drug, virus). Damage outside the liver $\Rightarrow$ shorter survival.
+\item $A$, \textbf{age}: older bodies regenerate the liver more slowly $\Rightarrow$ shorter survival.
+\item $K$, \textbf{number of comorbidities} (e.g.\ diabetes, immune disorders): these slow recovery $\Rightarrow$ shorter survival.
+\end{itemize}
+\textbf{Relationships:} older patients have more comorbidities and are more likely to have a heart-related cause (poor blood flow to the liver). Age therefore affects $E$, $K$ and $T$, which makes it a \emph{confounder} for the effects of $E$ and $K$ (e.g.\ $K\leftarrow A\rightarrow T$). $D$ is assumed to be independent of the others. All covariates are measured at the first TPE cycle.
+
+\section{Censoring}
+The data are \textbf{right-censored} for two reasons. (i) \emph{Type I:} follow-up ends at $\tau=90$ days, and patients who are alive without a transplant at that point are censored. (ii) \emph{Loss to follow-up}, e.g.\ transfer to another hospital. We observe $Y=\min(T,C)$ and $\Delta=I\{T\le C\}$.
+We assume \textbf{uninformative censoring}: $C$ is independent of $T$ given the covariates. This holds for (i) by design. It may fail for (ii) if very sick patients are more often transferred; survival would then be overestimated. A transplant counts as a failure, not as censoring. Otherwise censoring would be informative, because the sickest patients are the ones who receive a transplant.
+
+\section{Data-generating mechanism}
+\textbf{Model.} Each patient's survival time $T$ is log-logistic:
+\vspace{-4pt}
+\[
+S(t)=\frac{1}{1+(t/\lambda)^{\gamma}},\qquad \lambda=\exp\big(\beta_0+\beta_D D+\beta_E E+\beta_A A+\beta_K K\big).
+\]
+\vspace{-10pt}
+
+$S(t)$ is the probability of being alive without a transplant after $t$ days. $\lambda$ is the patient's median survival time, since $S(\lambda)=\tfrac12$. Each covariate changes $\lambda$: one unit more multiplies the median by the time ratio $\phi=e^{\beta}$. $\gamma$ is the shape, and $\gamma>1$ gives the early peak in the hazard. (Lecture form: $1/(1+\tilde\lambda t^{\gamma})$ with $\tilde\lambda=\lambda^{-\gamma}$.)
+
+\textbf{Simulation steps} for each patient: (1) draw $D,A,K,E$ from Table~\ref{tab:cov}; (2) compute $\lambda$; (3) draw $T=\lambda\,(U/(1-U))^{1/\gamma}$ with $U\sim U(0,1)$, which is the inverse-CDF method; (4) draw $C=\min(90,L)$ with $L\sim U(0,c_{\max})$; (5) record $Y=\min(T,C)$ and $\Delta=I\{T\le C\}$. We will use $n\in\{200,500\}$ patients and $R=2000$ simulation runs.
+
+\textbf{How we chose the numbers.} The values are our own plausible assumptions; they are not estimated from data. The signs of the $\beta$'s follow Section~3. Etiology has the largest effect because the cause of ALF is a strong predictor of outcome in registry data; the other effects are moderate. The covariate distributions are chosen to give realistic values, and age raises both the mean of $K$ (0.6 at age 45, 1.6 at age 65) and $P(E=1)$ (23\% vs.\ 50\%). $\beta_0=5.8$ and $\gamma=1.1$ are chosen so that a reference patient ($D=4$, $E=0$, $A=45$, $K=0$) has a median of $e^{5.8-0.4-0.9}=e^{4.5}\approx90$ days and a hazard peak at $\lambda(\gamma-1)^{1/\gamma}\approx$ day 11.
+
+\begin{table}[H]
+\centering\footnotesize
+\caption{Covariates and true effects. $\phi=e^{\beta}$ is the time ratio per unit; $\phi<1$ means shorter survival.}\label{tab:cov}
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Covariate & Distribution & $\beta$ & $\phi$ \\
+\midrule
+$D$: days from diagnosis to TPE & $\mathrm{Gamma}(2,\ \text{scale } 2)$, mean 4 & $-0.10$ & $0.90$ \\
+$A$: age (years) & $\mathcal N(45,15^2)$, capped to $[18,85]$ & $-0.02$ & $0.98$ \\
+$K$: number of comorbidities & $\mathrm{Poisson}$, mean $e^{-2.75+0.05A}$ & $-0.25$ & $0.78$ \\
+$E$: damage outside the liver & $\mathrm{Bernoulli}$, $P(E{=}1)=\frac{1}{1+e^{\,3.9-0.06A}}$ & $-0.70$ & $0.50$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+\vspace{-10pt}
+
+\section{Research questions}
+\textbf{RQ1.} How accurately (bias, variance, MSE) does the log-logistic model estimate the true $\beta$'s, and how does this change with sample size ($n=200$ vs.\ $500$) and loss to follow-up (5\% vs.\ 10\%)?
+\textbf{RQ2.} How biased are the estimates if we (a) fit a Weibull model, which cannot capture the early peak, or (b) leave out the confounder age?
+
+%=====================================================================
+\newpage
+\section*{Use of AI tools}
+\begin{enumerate}[leftmargin=1.4em,itemsep=4pt]
+\item \textbf{Researching ideas for the assignment} (23/09/2026; Gemini Pro and Claude, Anthropic).
+\begin{itemize}
+\item \textbf{Exact prompts:} Gemini: ``tell me in what cases is TPE used for liver failure. Is this a permanent treatment? is this a cure for it or it just postpones the inevitable?''; ``tell me how the age affects the comorbidities and how the comorbidities affect the etiology and the other way around if possible.'' ``Okay, For the task, we were thinking to use the an example of the hospital readmission: plasma exchange for pateints with liver failure.
+\item \textbf{Summary of output:} explanations of how TPE is used in acute liver failure (a ``bridge to recovery''), medical background on how age, comorbidities and etiology are related, other possible applications.
+\item \textbf{How it was used:} to choose and narrow down the application and to support the covariates and their relationships.
+\item \textbf{Modifications:} we chose our own application, model and covariates (Sections 1--3) and adapted the explanations.
+\end{itemize}
+\item \textbf{Writing the report in LaTeX and formulating the math} (24/09/2026; Claude, Anthropic).
+\begin{itemize}
+\item \textbf{Exact prompts:} `` Build a latex file for me. Academic style.''; ``Trim it a bit it is too long. Also make it look nice like an academic paper.''; ``Also, reduce the word count, make it as concise as possible.'';
+\item \textbf{Summary of output:} Claude drafted the latex file shortened and simplified the text, and typeset the report and its math in LaTeX.
+\item \textbf{How it was used:} as the draft of the final report.
+\item \textbf{Modifications:} we reviewed the draft, asked for corrections, and checked the formulas and notation against the lecture slides.
+\end{itemize}
+\end{enumerate}
+
+\section*{Contribution statement}
+\begin{itemize}[leftmargin=1.2em]
+\item Avram Andrei: [Contributed in the brainstorming, will have more responsibilities in
+next assignments.
+].
+\item Mihaiescu Cristian: [Section 1-3].
+\item Szelestey Adam: [Contributed in the brainstorming, will have more responsibilities in
+next assignments.
+].
+\item Vrincianu Darius: [Contributed in the brainstorming, will have more responsibilities in
+next assignments.
+].
+\item Zeng Qin Tao: [Section 4-6].
+\end{itemize}
+
+\end{document}

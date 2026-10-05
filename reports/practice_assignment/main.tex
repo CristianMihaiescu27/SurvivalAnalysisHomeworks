@@ -1,0 +1,120 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{caption}
+\usepackage{indentfirst}
+
+
+\begin{document}
+\begin{titlepage}
+\centering
+\vspace*{\fill}
+{\LARGE \textbf{MSE of Exponential Rate Estimators under Right Censoring:\\Simulation Study}} \\[2em]
+{\large 2AMS11 Survival Analysis for Data Science \\
+Group 49: Avram Andrei, Mihaiescu Cristian, Szelestey Adam, Vrincianu Darius, Zeng Qin Tao} \\[1em]
+\today
+\vspace*{\fill}
+\end{titlepage}
+
+\subsection*{Setup}
+Event times $T_i \stackrel{iid}{\sim} \mathrm{Exp}(\lambda)$ with $\lambda = 0.05$, censoring times
+$C_i \stackrel{iid}{\sim} \mathrm{Unif}(0, c_{\max})$ independent of $T_i$. We observe
+$Y_i = \min(T_i, C_i)$ and $\delta_i = \mathbb{I}\{T_i \le C_i\}$, and compare
+\[
+\hat{\lambda}_{\text{naive}} = \frac{1}{\bar{Y}}, \qquad
+\hat{\lambda}_{\text{mle}} = \frac{r}{\sum_{i=1}^n Y_i}, \quad r = \sum_i \delta_i .
+\]
+For each target censoring proportion $p_c \in \{0\%, 10\%, 50\%\}$ and sample size $n \in \{200, 500\}$ we
+run $R = 2000$ Monte Carlo replicates (seed 123). Since
+$P(T > C) = \frac{1 - e^{-\lambda c_{\max}}}{\lambda c_{\max}}$ does not depend on $n$, $c_{\max}$ is
+calibrated once per $p_c$ on a pilot sample of $1000$ event times by searching a grid of $c_{\max}$ values
+for the smallest deviation between the empirical censoring proportion and $p_c$, $p_c = 0\%$ is obtained by
+setting $C_i = \infty$. The search returns $c_{\max} = 186.5$ and $29.7$. Since $P(T>C)$ is very flat in $c_{\max}$ at small $p_c$ and each grid point uses one pilot draw, the realised proportions ($10.7\%$, $52.1\%$) sit slightly above target, so we report realised values throughout. Per replicate we record $\hat{\lambda}_{\text{naive}}$, $\hat{\lambda}_{\text{mle}}$
+(recorded as NA when $r = 0$) and the realised censoring fraction. Bias, variance and
+$\mathrm{MSE} = \widehat{\mathrm{bias}}^2 + \widehat{\mathrm{var}}$ are the Monte Carlo averages over the
+non-NA replicates.
+
+\subsection*{Results}
+
+\begin{table}[h!]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption*{Monte Carlo results over $R=2000$ replicates, $\lambda = 0.05$, seed 123 and
+"obs cens" is the realised censoring fraction averaged over replicates.}
+\begin{tabular}{@{}rcc rrrr rrrr r@{}}
+\toprule
+& & & \multicolumn{4}{c}{$\hat{\lambda}_{\text{naive}}$} & \multicolumn{4}{c}{$\hat{\lambda}_{\text{mle}}$} & \\
+\cmidrule(lr){4-7}\cmidrule(lr){8-11}
+$n$ & $p_c$ & obs cens & mean & bias & var & MSE & mean & bias & var & MSE & $P(r=0)$ \\
+\midrule
+500 & 0\% & 0.000 & 0.05014 & 0.00014 & 5.27e-6 & 5.29e-6 & 0.05014 & 0.00014 & 5.27e-6 & 5.29e-6 & 0 \\
+500 & 10\% & 0.107 & 0.05613 & 0.00613 & 6.15e-6 & 4.38e-5 & 0.05013 & 0.00013 & 5.51e-6 & 5.52e-6 & 0 \\
+500 & 50\% & 0.521 & 0.10469 & 0.05469 & 1.34e-5 & 3.00e-3 & 0.05018 & 0.00018 & 1.01e-5 & 1.01e-5 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Discussion}
+
+\textbf{No censoring.} With $p_c = 0$ all $\delta_i = 1$, so $r = n$ and the two estimators coincide
+exactly. Both show the small positive $O(1/n)$ bias of $n / \sum_i T_i$ and an MSE of order $\lambda^2/n$.
+
+\textbf{Effect of censoring on the naive estimator.} Censoring replaces $T_i$ by the smaller value
+$Y_i = \min(T_i, C_i)$, so $\mathbb{E}[\bar{Y}] < 1/\lambda$ and $\hat{\lambda}_{\text{naive}} = 1/\bar{Y}$
+is biased upward, meaning the estimator behaves as if subjects fail at the moment they are lost to
+follow-up, which makes the event rate look larger than it is. The bias grows steeply with $p_c$
+($+0.006$ at $p_c \approx 11\%$, $+0.055$ at $p_c \approx 52\%$, where the estimate roughly doubles). Indeed, the exponential has constant hazard $\lambda$, so its density satisfies $f_T = \lambda S_T$. Integrating this against the censoring survival function gives $\mathbb{E}[\delta] = \lambda \mathbb{E}[Y]$. This shows that the rate equals expected events divided by expected time at risk. Since $\mathbb{E}[\delta] = 1 - p_c$, this yields $\mathbb{E}[Y] = (1-p_c)/\lambda$, meaning censoring shortens mean follow-up by exactly the censored fraction. The naive estimator discards the event count and therefore converges to $\lambda/(1-p_c)$, which is an asymptotic bias of $\lambda p_c/(1-p_c)$, which well approximates both values. Its variance barely
+changes. Because the bias enters the MSE squared and is $O(1)$ in $n$, it dominates as soon as censoring
+is non-negligible: at $p_c \approx 52\%$ the naive MSE is $110\times$ the MLE's, and it does
+not improve when $n$ grows from $200$ to $500$ which means the estimator doesn't converge under censoring.
+
+\textbf{The MLE.} $\hat{\lambda}_{\text{mle}}$ divides the number of observed events by the total time at
+risk, which is exactly the sufficient statistic of the censored exponential likelihood
+$L(\lambda) = \lambda^{r} e^{-\lambda \sum_i y_i}$. Its bias stays negligible at every censoring level,
+and its variance grows only mildly, approximately $\lambda^2 / \mathbb{E}[r] = \lambda^2 / (n(1-p_c))$.
+Therefore censoring costs information but introduces no systematic error. The
+MSE therefore roughly doubles from $p_c = 0\%$ to $52\%$, and falls when $n$ goes from $200$ to $500$,
+as expected for a $\sqrt{n}$-consistent estimator.
+
+%\textbf{Degenerate replicates.} $\hat{\lambda}_{\text{mle}}$ is undefined when $r = 0$. With
+%$n \ge 200$ and $p_c \le 50\%$ this never occurred $P(r=0) \approx (p_c)^n \approx 0$, so excluding such
+%replicates has no effect here. It would matter only for very small $n$ or very heavy censoring, where the
+%reported MSE would be conditional on $r > 0$.
+
+%\textbf{Conclusion.} Ignoring censoring trades a negligible variance reduction for a large
+%n-independent bias so the MLE is preferred at every censoring level and is essentially free: at
+%$p_c = 0$ the two estimators are identical.
+
+\newpage
+\section*{Use of AI tools}
+\begin{itemize}
+  \item \textbf{Date of use}: 16 September
+  \item \textbf{Tool}: Claude Opus 5 
+  \item \textbf{Exact prompt(s)}: "Explain step 2 from the simulation procedure regarding the part with cmax."; "Have I missed anything in my code?"
+  \item \textbf{Summary of output}: 
+  \item \textbf{How it was used}: The first prompt was used so that we could better understand the second part of the simulation procedure and the second prompt was meant to verify whether the code that was written was not missing anything.
+  \item \textbf{Modifications}:
+\\
+   \item \textbf{Date of use}: 17 September 
+  \item \textbf{Tool}: Claude Opus 5 
+  \item \textbf{Exact prompt(s)}: "Give me, in LaTeX only, the mathematical formulas behind Assignment1Code.R: exponential event times, uniform censoring times, Y = min(T,C), the event indicator, the censoring probability and the grid calibration of c\_max, the censored likelihood with both estimators derived from it, the Monte Carlo definitions of bias, variance and MSE, and the asymptotic results for the naive estimator and the MLE. Use amsmath." 
+  \item \textbf{Summary of output}: The output was comprised of the exact formulas in LaTeX. 
+  \item \textbf{How it was used}: We used the given formulas in order to append them directly in the report as some of them were hard to write manually in LaTeX.
+  \item \textbf{Modifications:} 
+\end{itemize}
+
+\section*{Contribution statement}
+\begin{itemize}
+  \item \textbf{Avram Andrei}: Wrote the report.
+  \item \textbf{Mihaiescu Cristian}: 
+  \item \textbf{Szelestey Adam}: Wrote the report and proofread the final deliverables.
+  \item \textbf{Vrincianu Darius}: Created the repository and wrote the code.
+  \item \textbf{Zeng Qin Tao} :
+\end{itemize}
+
+
+\end{document}
