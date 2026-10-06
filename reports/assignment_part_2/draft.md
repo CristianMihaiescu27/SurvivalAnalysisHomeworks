@@ -31,6 +31,29 @@ A flowchart is encouraged.
 > RQ1. How accurately (bias, variance, MSE) does the log-logistic model estimate the true β ’s, and how does this change with sample size (n = 200 vs. 500) and loss to follow-up (5% vs. 10%)?
 > RQ2. How biased are the estimates if we (a) fit a Weibull model, which cannot capture the early peak, or (b) leave out the confounder age?
 
+#### RQ1: Correct log-logistic model
+
+**H1 (bias).** When we fit the correct log-logistic model, the estimated effects will be very close to the true values in all four scenarios. Any small bias at n = 200 will become even smaller at n = 500. The reason is that the fitted model is the same as the model that generated the data, and the censoring does not depend on the survival time, so the estimates are correct on average.
+
+**H2 (sample size).** The estimates will vary less from run to run with 500 patients than with 200. We expect the empirical standard error to drop by about one third, and the MSE to fall to roughly 40% of its value at n = 200. The reason is that more patients give more information. Since the bias is close to zero, the MSE is almost entirely caused by variance and falls with it.
+
+**H3 (loss to follow-up).** Increasing loss to follow-up from 5% to 10% will make the estimates slightly less precise, but will not make them biased. This effect will be much smaller than the effect of sample size. The reason is that extra random censoring only removes some observed events. It does not push the estimates in a particular direction. Many patients are already censored at the 90-day cutoff, so losing an extra 5% makes little difference.
+
+#### RQ2a: Wrong model (Weibull instead of log-logistic)
+
+**H4.** The Weibull model will clearly misestimate the intercept and the shape of the survival curve. The covariate effects (days to treatment, age, comorbidities, etiology) will be only slightly biased. The reason is that the two models differ only in the assumed shape of the survival distribution. Most of the misfit is absorbed by the intercept and shape. The Weibull hazard can only go up or down over time, so it cannot reproduce the early peak in risk. Because many patients are censored, the covariate effects will still be somewhat affected.
+
+**H5.** The bias of the Weibull model will not go away with more patients, while its variance will. This means that the Weibull model will look relatively worse at n = 500 than at n = 200, compared with the correct model. The reason is that a wrong model is precisely estimating the wrong thing: more data makes the estimate more stable but not more accurate.
+
+**H6.** The Weibull model will be somewhat more biased at 10% loss to follow-up than at 5%. The reason is that the more of the data is censored, the more the estimates depend on the assumed shape of the distribution, which is wrong here.
+
+#### RQ2b: Leaving out the confounder age
+
+**H7.** Leaving age out of the model will make comorbidities and damage outside the liver look more harmful than they really are. The reason is that in our data, older patients have more comorbidities and more often have damage outside the liver, and older patients also survive shorter. Without age in the model, part of the harmful effect of age is wrongly attributed to comorbidities and etiology.
+
+**H8.** The effect of days to treatment will stay close to its true value when age is left out, but it will be estimated slightly less precisely. The reason is that days to treatment was generated independently of age, so age does not confound it. The variation in survival caused by age becomes unexplained noise. This makes the estimates a bit less precise, but does not push them in a particular direction.
+
+
 ## Appendix
 
 ### Response to Feedback
